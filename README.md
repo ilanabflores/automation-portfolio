@@ -38,7 +38,3 @@ Workflows de automatización construidos con n8n para operaciones de marketing d
 ## Stack
 `n8n` · `Google Analytics 4` · `Google Search Console` · `Instantly` · `Notion API` · `Google Sheets` · `Gemini AI` · `Supabase` · `PostgreSQL` · `JavaScript`
 
----
-
-> Los proyectos de Bikubo fueron construidos para [Bikubo One](https://bikubo-one.com), plataforma de gestión para clubes deportivos.
-> Los proyectos de Culto Café fueron construidos para [Culto Café](https://micultocafe.netlify.app), directorio de cafeterías de especialidad en Madrid.
