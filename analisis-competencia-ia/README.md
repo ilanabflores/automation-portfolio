@@ -4,7 +4,7 @@ Monitoreo automatizado de 10 competidores directos cada 14 días: scraping de su
 
 ## El problema
 
-Revisar manualmente 10 competidores — página por página, funcionalidades, precios, mensajes — y redactar un resumen estructurado toma entre 3 y 4 horas por ciclo. Sin automatización, ese tiempo compite con otras prioridades y el monitoreo se vuelve irregular. Con este workflow, el ciclo completo corre solo cada 14 días sin intervención humana.
+Revisar manualmente 10 competidores — página por página, funcionalidades, precios, mensajes — más 5 fuentes de mercado y redactar un resumen estructurado con hallazgos y recomendaciones toma entre 6 y 8 horas por ciclo. Sin automatización, ese tiempo compite con otras prioridades y el monitoreo se vuelve irregular. Con este workflow, el ciclo completo corre solo cada 14 días sin intervención humana.
 
 ## Qué detectó en producción
 

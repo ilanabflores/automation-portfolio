@@ -4,7 +4,7 @@ Cierra el ciclo de inteligencia competitiva: toma los hallazgos del análisis de
 
 ## El problema
 
-Después de cada ciclo de análisis, los datos quedan en Google Sheets pero leerlos fila por fila no es una experiencia útil para tomar decisiones. Se necesitaba una forma de transformar esos datos en algo que se pudiera revisar en 5 minutos: un informe con contexto, comparaciones y acciones concretas. Redactarlo a mano tomaría otra hora encima del tiempo ya invertido en el análisis.
+Después de cada ciclo de análisis, los datos quedan en Google Sheets pero leerlos fila por fila no es una experiencia útil para tomar decisiones. Se necesitaba una forma de transformar esos datos en algo que se pudiera revisar en 5 minutos: un informe con contexto, comparaciones y acciones concretas. Redactarlo a mano tomaría otra hora encima de las 6-8 horas ya invertidas en el análisis.
 
 ## Qué recibe jefatura cada ciclo
 
