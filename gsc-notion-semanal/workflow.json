@@ -1,0 +1,106 @@
+{
+  "name": "GSC → Notion (Semanal)",
+  "nodes": [
+    {
+      "name": "Lunes 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "triggerAtDay": [1], "triggerAtHour": 9 }] }
+      }
+    },
+    {
+      "name": "Calcular semana",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst dayOfWeek = now.getDay();\nconst daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;\nconst daysToLastMonday = daysToMonday + 7;\nconst lastMonday = new Date(now);\nlastMonday.setDate(now.getDate() - daysToLastMonday);\nlastMonday.setHours(0, 0, 0, 0);\nconst lastSunday = new Date(lastMonday);\nlastSunday.setDate(lastMonday.getDate() + 6);\nconst fmt = (d) => d.toISOString().split('T')[0];\nconst getISOWeek = (d) => {\n  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));\n  const dayNum = date.getUTCDay() || 7;\n  date.setUTCDate(date.getUTCDate() + 4 - dayNum);\n  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));\n  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);\n  return date.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');\n};\nreturn [{ json: { startDate: fmt(lastMonday), endDate: fmt(lastSunday), semana: getISOWeek(lastMonday) } }];"
+      }
+    },
+    {
+      "name": "GSC - Global",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain%3AYOUR_DOMAIN/searchAnalytics/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "jsonBody": "={ \"startDate\": \"{{ $json.startDate }}\", \"endDate\": \"{{ $json.endDate }}\", \"dataState\": \"final\" }",
+        "note": "Reemplaza YOUR_DOMAIN con tu dominio verificado en Search Console"
+      }
+    },
+    {
+      "name": "GSC - Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain%3AYOUR_DOMAIN/searchAnalytics/query",
+        "jsonBody": "={ \"startDate\": \"{{ $json.startDate }}\", \"endDate\": \"{{ $json.endDate }}\", \"dimensions\": [\"query\"], \"rowLimit\": 10, \"orderBy\": [{\"fieldName\": \"clicks\", \"sortOrder\": \"DESCENDING\"}], \"dataState\": \"final\" }"
+      }
+    },
+    {
+      "name": "GSC - Páginas",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain%3AYOUR_DOMAIN/searchAnalytics/query",
+        "jsonBody": "={ \"startDate\": \"{{ $json.startDate }}\", \"endDate\": \"{{ $json.endDate }}\", \"dimensions\": [\"page\"], \"rowLimit\": 10, \"orderBy\": [{\"fieldName\": \"clicks\", \"sortOrder\": \"DESCENDING\"}], \"dataState\": \"final\" }"
+      }
+    },
+    {
+      "name": "Formatear Global",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.rows || [];\nconst semana = $('Calcular semana').first().json.semana;\nconst startDate = $('Calcular semana').first().json.startDate;\nconst row = rows.length > 0 ? rows[0] : {};\nreturn [{ json: { semana, clicks: row.clicks || 0, impressions: row.impressions || 0, ctr: Math.round((row.ctr || 0) * 10000) / 100, position: Math.round((row.position || 0) * 100) / 100, fecha: startDate } }];"
+      }
+    },
+    {
+      "name": "Formatear Keywords",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.rows || [];\nconst semana = $('Calcular semana').first().json.semana;\nconst startDate = $('Calcular semana').first().json.startDate;\nif (rows.length === 0) return [];\nreturn rows.map(row => ({ json: { semana, query: row.keys[0], clicks: row.clicks || 0, impressions: row.impressions || 0, ctr: Math.round((row.ctr || 0) * 10000) / 100, position: Math.round((row.position || 0) * 100) / 100, fecha: startDate } }));"
+      }
+    },
+    {
+      "name": "Formatear Páginas",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.rows || [];\nconst semana = $('Calcular semana').first().json.semana;\nconst startDate = $('Calcular semana').first().json.startDate;\nif (rows.length === 0) return [];\nreturn rows.map(row => ({ json: { semana, url: row.keys[0], clicks: row.clicks || 0, impressions: row.impressions || 0, ctr: Math.round((row.ctr || 0) * 10000) / 100, position: Math.round((row.position || 0) * 100) / 100, fecha: startDate } }));"
+      }
+    },
+    {
+      "name": "Notion - SEO Global",
+      "type": "n8n-nodes-base.notion",
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": { "value": "YOUR_NOTION_DB_GLOBAL_ID" },
+        "note": "Reemplaza con el ID de tu base de datos de Notion para métricas globales"
+      }
+    },
+    {
+      "name": "Notion - Top Keywords",
+      "type": "n8n-nodes-base.notion",
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": { "value": "YOUR_NOTION_DB_KEYWORDS_ID" }
+      }
+    },
+    {
+      "name": "Notion - Top Páginas",
+      "type": "n8n-nodes-base.notion",
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": { "value": "YOUR_NOTION_DB_PAGES_ID" }
+      }
+    }
+  ],
+  "connections": {
+    "Lunes 9:00": { "main": [[{ "node": "Calcular semana" }]] },
+    "Calcular semana": { "main": [[{ "node": "GSC - Global" }, { "node": "GSC - Keywords" }, { "node": "GSC - Páginas" }]] },
+    "GSC - Global": { "main": [[{ "node": "Formatear Global" }]] },
+    "GSC - Keywords": { "main": [[{ "node": "Formatear Keywords" }]] },
+    "GSC - Páginas": { "main": [[{ "node": "Formatear Páginas" }]] },
+    "Formatear Global": { "main": [[{ "node": "Notion - SEO Global" }]] },
+    "Formatear Keywords": { "main": [[{ "node": "Notion - Top Keywords" }]] },
+    "Formatear Páginas": { "main": [[{ "node": "Notion - Top Páginas" }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

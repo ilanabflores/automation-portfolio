@@ -1,0 +1,27 @@
+{
+  "name": "Aviso de errores - workflows",
+  "nodes": [
+    {
+      "name": "Cuando un workflow falla",
+      "type": "n8n-nodes-base.errorTrigger",
+      "parameters": {},
+      "note": "Se activa automáticamente cuando cualquier otro workflow de n8n falla"
+    },
+    {
+      "name": "Avisar por correo",
+      "type": "n8n-nodes-base.emailSend",
+      "parameters": {
+        "fromEmail": "Avisos n8n <YOUR_EMAIL>",
+        "toEmail": "YOUR_EMAIL",
+        "subject": "=Falló un workflow: {{ $json.workflow.name }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;\">\n  <h2>Un workflow ha fallado</h2>\n  <p><b>Workflow:</b> {{ $json.workflow.name }}</p>\n  <p><b>Paso donde falló:</b> {{ $json.execution.lastNodeExecuted }}</p>\n  <p><b>Mensaje:</b> {{ $json.execution.error.message }}</p>\n  <p><a href=\"{{ $json.execution.url }}\">Ver la ejecución en n8n</a></p>\n</div>",
+        "note": "Reemplaza YOUR_EMAIL con tu dirección de correo"
+      }
+    }
+  ],
+  "connections": {
+    "Cuando un workflow falla": { "main": [[{ "node": "Avisar por correo" }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

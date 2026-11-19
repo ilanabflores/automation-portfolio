@@ -1,0 +1,160 @@
+{
+  "name": "Culto Cafe - Agente",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Eres Culto: la taza de café azul, curiosa y exploradora de Culto Café. Hablas cercano y con entusiasmo, frases cortas, tuteas siempre. Nada formal ni robótico. Tu frase es \"¿Dónde vamos hoy?\". Recomiendas cafeterías de especialidad en Malasaña, Madrid.\n\nNeo (trabajar/estudiar) y Moka (quedar con gente) son tus amigos, pero son un recurso MUY ocasional — menciónalos como mucho una vez cada 4-5 mensajes, nunca en mensajes seguidos. La mayoría de las veces NO los menciones, simplemente recomienda tú misma sin citarlos. Si tienes dudas, mejor no los nombres.\n\nTONO: cercano, urbano, curioso e inspirador. Tuteas. Frases cortas. Nada corporativo ni frío. Emoji con moderación (☕ ✨ 🐾 📍).\n\nSALUDOS: varía cómo abres la conversación. Inspírate en: \"¡Hola! Soy Culto ☕ ¿Dónde vamos hoy?\" / \"¡Ey! Culto por aquí. ¿Qué plan tienes?\" / \"¡Hola de nuevo! ¿Trabajar, catar, quedar con alguien?\"\n\nDESPEDIDAS: si el usuario se despide o agradece, cierra cálido y breve, variando: \"¡Que disfrutes el café! ☕\" / \"¡Nos vemos por el barrio! 👋\" / \"¡Avísame si quieres otra recomendación!\"\n\nDATOS: usa SIEMPRE la herramienta \"cafeterias\" para consultar la base real de cafeterías verificadas de Malasaña antes de recomendar. Nunca inventes cafeterías, direcciones ni datos que no te devuelva la herramienta. Si preguntan por una cafetería que no aparece, dilo con naturalidad y ofrece alternativas de las que sí tienes.\n\nZONA FUERA DE MALASAÑA: si preguntan por una zona fuera de Malasaña, dilo con naturalidad (puedes usar algo del estilo \"todavía no me he aventurado por ahí\") y SIEMPRE ofrece seguir ayudando dentro de Malasaña, por ejemplo: \"¿te apetece que te recomiende algo por Malasaña en su lugar?\"\n\nCÓMO LEER EL CAMPO \"ruido_1a5\": es un número del 1 al 5, SOLO para ti, NUNCA lo escribas tal cual (\"ruido 2\") en tu respuesta — tradúcelo siempre a palabras:\n1 = \"muy tranquilo, casi de biblioteca\"\n2 = \"tranquilo, bueno para concentrarte\"\n3 = \"ambiente normal, conversación de fondo\"\n4 = \"animado, con bullicio\"\n5 = \"ruidoso, mucho ambiente\"\n\nCÓMO LLEGAR: si preguntan cómo llegar a una cafetería, da la dirección y añade un enlace a Google Maps con este formato exacto, usando los datos lat y lng de la ficha: https://www.google.com/maps/search/?api=1&query={lat},{lng} — redacta el enlace como texto plano, por ejemplo: \"Aquí tienes cómo llegar: https://www.google.com/maps/search/?api=1&query=40.4242,-3.7039\"\n\nPROCESO EN CADA RESPUESTA:\n1. Si no sabes la zona o el plan del usuario (trabajar, estudiar, quedar, cata, socializar), haz UNA sola pregunta breve antes de recomendar.\n2. Recomienda como máximo 2 o 3 cafeterías. Para cada una: nombre en negrita, dirección, una frase de por qué encaja, y datos útiles en palabras naturales (wifi, el ruido SIEMPRE traducido según la tabla de arriba, enchufes, si es pet-friendly, terraza, nivel de precio).\n3. Si tiene web o Instagram en los datos, ofrécelo también como referencia.\n4. Si preguntan por la carta completa o un precio muy específico que no tienes, da el nivel de precio y sugiere mirar su Instagram o web para la carta actualizada. No inventes precios exactos.\n5. Si un dato no está en la ficha que te devuelve la herramienta, no lo menciones y no lo inventes.\n6. Cierra ofreciendo afinar (más tranquilo, con terraza, con perro) o con despedida si ya no necesita nada más.\n7. Recuerda el contexto de la conversación: si ya dijo zona o gustos, no lo repreguntes.\n8. No menciones a Neo ni a Moka en cada respuesta — son un guiño ocasional, no una muletilla.",
+          "maxIterations": 3,
+          "enableStreaming": false
+        }
+      },
+      "id": "cca76490-f529-4e7d-ac9c-7ad369ce672b",
+      "name": "Agente Culto Cafe",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        64
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 3
+      },
+      "id": "2b41f986-4b72-4874-9e52-e208c79c13c0",
+      "name": "Memoria de conversacion",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cafeterias_para_agente",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "id": "af8e37b8-1708-46c0-9764-b5617b864e14",
+      "name": "cafeterias",
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        432,
+        336
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "MB9aVrRs7oe6QPPk",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "¡Hola! Soy Culto ☕ ¿Dónde vamos hoy? Dime la zona y qué plan tienes.",
+        "options": {
+          "inputPlaceholder": "Ej: sitio tranquilo con wifi en Malasana para trabajar",
+          "subtitle": "¿Dónde vamos hoy?",
+          "title": "Culto Cafe",
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "d2abf2b3-a804-49f6-87a6-774306fa2b03",
+      "name": "Chat Culto",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -80,
+        64
+      ],
+      "webhookId": "b889cd17-d04e-45ef-b77f-e71dab22a5b3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        320
+      ],
+      "id": "da2899bd-2604-4c94-b082-a965dfbd5dab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "plt2jimYKo2ICAxp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Memoria de conversacion": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente Culto Cafe",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cafeterias": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Culto Cafe",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Culto": {
+      "main": [
+        [
+          {
+            "node": "Agente Culto Cafe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Culto Cafe",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "97ebe4a2-d8f4-43dd-b983-56cb98bd48f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "304e0b08a6e0606ac38afe8f3498aaac202a9b54166f3663835d8ecdcddcae22"
+  },
+  "nodeGroups": [],
+  "id": "wFjbzS2wzD6rzJZK",
+  "tags": []
+}

@@ -1,0 +1,93 @@
+{
+  "name": "Cold Email → Notion (Semanal)",
+  "nodes": [
+    {
+      "name": "Lunes 09:00 Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "triggerAtDay": [1], "triggerAtHour": 9 }] }
+      }
+    },
+    {
+      "name": "Instantly – Analytics Semanal",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.instantly.ai/api/v2/campaigns/analytics",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "start_date", "value": "={{ $now.minus({weeks:1}).startOf('week').toFormat('yyyy-MM-dd') }}" },
+            { "name": "end_date", "value": "={{ $now.minus({weeks:1}).endOf('week').toFormat('yyyy-MM-dd') }}" }
+          ]
+        },
+        "note": "Requiere API key de Instantly en las credenciales de Header Auth"
+      }
+    },
+    {
+      "name": "Filtrar Campañas Activas",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "leftValue": "={{ $json.emails_sent_count }}", "operator": { "type": "number", "operation": "gt" }, "rightValue": 0 }]
+        }
+      }
+    },
+    {
+      "name": "Calcular Métricas",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "semana", "value": "={{ $now.minus({weeks:1}).startOf('week').toFormat('dd/MM') + ' – ' + $now.minus({weeks:1}).endOf('week').toFormat('dd/MM/yyyy') }}", "type": "string" },
+            { "name": "campana", "value": "={{ $json.campaign_name }}", "type": "string" },
+            { "name": "emails_enviados", "value": "={{ $json.emails_sent_count ?? 0 }}", "type": "number" },
+            { "name": "aperturas", "value": "={{ $json.open_count ?? 0 }}", "type": "number" },
+            { "name": "respuestas", "value": "={{ $json.reply_count ?? 0 }}", "type": "number" },
+            { "name": "tasa_apertura_pct", "value": "={{ ($json.emails_sent_count ?? 0) > 0 ? Math.round(($json.open_count ?? 0) / $json.emails_sent_count * 1000) / 10 : 0 }}", "type": "number" },
+            { "name": "tasa_respuesta_pct", "value": "={{ ($json.emails_sent_count ?? 0) > 0 ? Math.round(($json.reply_count ?? 0) / $json.emails_sent_count * 1000) / 10 : 0 }}", "type": "number" },
+            { "name": "tasa_rebote_pct", "value": "={{ ($json.emails_sent_count ?? 0) > 0 ? Math.round(($json.bounced_count ?? 0) / $json.emails_sent_count * 1000) / 10 : 0 }}", "type": "number" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Buscar Fila Existente",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/YOUR_NOTION_DB_ID/query",
+        "note": "Busca si ya existe la fila para esa semana y campaña"
+      }
+    },
+    {
+      "name": "¿Ya existe?",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "leftValue": "={{ $json.results.length }}", "operator": { "type": "number", "operation": "gt" }, "rightValue": 0 }]
+        }
+      }
+    },
+    {
+      "name": "Notion API – Actualizar Entrada",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": { "method": "PATCH", "url": "={{ 'https://api.notion.com/v1/pages/' + $('Buscar Fila Existente').item.json.results[0].id }}" }
+    },
+    {
+      "name": "Notion API – Crear Entrada",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": { "method": "POST", "url": "https://api.notion.com/v1/pages" }
+    }
+  ],
+  "connections": {
+    "Lunes 09:00 Trigger": { "main": [[{ "node": "Instantly – Analytics Semanal" }]] },
+    "Instantly – Analytics Semanal": { "main": [[{ "node": "Filtrar Campañas Activas" }]] },
+    "Filtrar Campañas Activas": { "main": [[{ "node": "Calcular Métricas" }]] },
+    "Calcular Métricas": { "main": [[{ "node": "Buscar Fila Existente" }]] },
+    "Buscar Fila Existente": { "main": [[{ "node": "¿Ya existe?" }]] },
+    "¿Ya existe?": { "main": [[{ "node": "Notion API – Actualizar Entrada" }], [{ "node": "Notion API – Crear Entrada" }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

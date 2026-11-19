@@ -1,0 +1,122 @@
+{
+  "name": "GA4 → Notion (Metricas Web Semanal)",
+  "nodes": [
+    {
+      "name": "Lunes 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "triggerAtDay": [1], "triggerAtHour": 9 }] }
+      }
+    },
+    {
+      "name": "Calcular Semana",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "semana", "value": "={{ 'Sem. ' + $now.minus({days:7}).toFormat('kkkk') + '-W' + $now.minus({days:7}).toFormat('WW') }}", "type": "string" },
+            { "name": "fecha", "value": "={{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }}", "type": "string" },
+            { "name": "startDate", "value": "={{ $now.minus({days:7}).toFormat('yyyy-MM-dd') }}", "type": "string" },
+            { "name": "endDate", "value": "={{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }}", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GA4 – Metricas Generales",
+      "type": "n8n-nodes-base.googleAnalytics",
+      "parameters": {
+        "propertyId": { "mode": "id", "value": "YOUR_GA4_PROPERTY_ID" },
+        "dateRange": "custom",
+        "startDate": "={{ $('Calcular Semana').item.json.startDate }}",
+        "endDate": "={{ $('Calcular Semana').item.json.endDate }}",
+        "metricsGA4": {
+          "metricValues": [
+            { "listName": "sessions" },
+            { "listName": "active7DayUsers" },
+            { "listName": "screenPageViews" },
+            { "listName": "userEngagementDuration" },
+            { "name": "bounceRate" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GA4 – Eventos",
+      "type": "n8n-nodes-base.googleAnalytics",
+      "parameters": {
+        "propertyId": { "mode": "id", "value": "YOUR_GA4_PROPERTY_ID" },
+        "dateRange": "custom",
+        "startDate": "={{ $('Calcular Semana').item.json.startDate }}",
+        "endDate": "={{ $('Calcular Semana').item.json.endDate }}",
+        "metricsGA4": { "metricValues": [{ "listName": "eventCount" }] },
+        "dimensionsGA4": { "dimensionValues": [{ "name": "eventName" }] },
+        "returnAll": true
+      }
+    },
+    {
+      "name": "GA4 – Canales",
+      "type": "n8n-nodes-base.googleAnalytics",
+      "parameters": {
+        "propertyId": { "mode": "id", "value": "YOUR_GA4_PROPERTY_ID" },
+        "dateRange": "custom",
+        "startDate": "={{ $('Calcular Semana').item.json.startDate }}",
+        "endDate": "={{ $('Calcular Semana').item.json.endDate }}",
+        "metricsGA4": { "metricValues": [{ "listName": "sessions" }] },
+        "dimensionsGA4": { "dimensionValues": [{ "name": "sessionDefaultChannelGroup" }] },
+        "returnAll": true
+      }
+    },
+    {
+      "name": "Merge Canales+Eventos",
+      "type": "n8n-nodes-base.merge"
+    },
+    {
+      "name": "Transformar Datos",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const metricas = $('GA4 – Metricas Generales').first().json;\nconst eventosItems = $('GA4 – Eventos').all();\nconst canalesItems = $('GA4 – Canales').all();\nconst semanaData = $('Calcular Semana').first().json;\n\nconst eventos = {};\nfor (const item of eventosItems) {\n  eventos[item.json.eventName] = parseInt(item.json.eventCount) || 0;\n}\n\nconst canales = {};\nfor (const item of canalesItems) {\n  canales[item.json.sessionDefaultChannelGroup] = parseInt(item.json.sessions) || 0;\n}\n\nconst sesiones = parseInt(metricas.sessions) || 0;\nconst generateLead = eventos['generate_lead'] || 0;\nconst tasaConversion = sesiones > 0 ? Math.round((generateLead / sesiones) * 1000) / 10 : 0;\nconst duracionSegundos = parseFloat(metricas.userEngagementDuration) || 0;\nconst duracionMinutos = Math.round(duracionSegundos / 60 * 10) / 10;\nconst bounceRate = Math.round((parseFloat(metricas.bounceRate) || 0) * 1000) / 10;\n\nreturn [{\n  json: {\n    semana: semanaData.semana,\n    fecha: semanaData.fecha,\n    sesiones,\n    usuariosNuevos: parseInt(metricas.totalUsers) || 0,\n    duracionMediaMin: duracionMinutos,\n    tasaRebote: bounceRate,\n    generateLead,\n    ctaContacto: eventos['cta_contacto'] || 0,\n    whatsappClick: eventos['whatsapp_click'] || 0,\n    tasaConversion,\n    sesionesOrganicas: canales['Organic Search'] || 0,\n    sesionesDirecitas: canales['Direct'] || 0,\n    sesionesSocial: canales['Organic Social'] || canales['Paid Social'] || 0,\n    sesionesReferral: canales['Referral'] || 0\n  }\n}];"
+      }
+    },
+    {
+      "name": "Buscar Semana en Notion",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/YOUR_NOTION_DB_ID/query",
+        "note": "Reemplaza YOUR_NOTION_DB_ID con el ID de tu base de datos de Notion"
+      }
+    },
+    {
+      "name": "Existe Semana",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "leftValue": "={{ $json.results.length }}", "operator": { "type": "number", "operation": "gt" }, "rightValue": 0 }]
+        }
+      }
+    },
+    {
+      "name": "Notion – Actualizar Entrada Web",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": { "method": "PATCH", "url": "={{ 'https://api.notion.com/v1/pages/' + $json.results[0].id }}" }
+    },
+    {
+      "name": "Notion – Crear Entrada Web",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": { "method": "POST", "url": "https://api.notion.com/v1/pages" }
+    }
+  ],
+  "connections": {
+    "Lunes 09:00": { "main": [[{ "node": "Calcular Semana" }]] },
+    "Calcular Semana": { "main": [[{ "node": "GA4 – Metricas Generales" }]] },
+    "GA4 – Metricas Generales": { "main": [[{ "node": "GA4 – Eventos" }]] },
+    "GA4 – Eventos": { "main": [[{ "node": "Merge Canales+Eventos" }, { "node": "GA4 – Canales" }]] },
+    "GA4 – Canales": { "main": [[{ "node": "Merge Canales+Eventos" }]] },
+    "Merge Canales+Eventos": { "main": [[{ "node": "Transformar Datos" }]] },
+    "Transformar Datos": { "main": [[{ "node": "Buscar Semana en Notion" }]] },
+    "Buscar Semana en Notion": { "main": [[{ "node": "Existe Semana" }]] },
+    "Existe Semana": { "main": [[{ "node": "Notion – Actualizar Entrada Web" }], [{ "node": "Notion – Crear Entrada Web" }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

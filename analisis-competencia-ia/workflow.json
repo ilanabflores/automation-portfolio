@@ -1,0 +1,166 @@
+{
+  "name": "Análisis de Competencia con IA (Automático)",
+  "nodes": [
+    {
+      "name": "Revisar cada dia",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 10 }] }
+      }
+    },
+    {
+      "name": "Leer ciclos",
+      "type": "n8n-nodes-base.dataTable",
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "note": "Lee la tabla de control de ciclos para saber cuándo fue el último análisis"
+      }
+    },
+    {
+      "name": "Toca analizar",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const fechas = $input.all().map(function (i) { return String(i.json.fecha || ''); }).filter(function (f) { return f; }).sort();\nconst ultima = fechas.length ? fechas[fechas.length - 1] : '';\nconst hoy = new Date().toISOString().slice(0, 10);\nif (ultima) {\n  const dias = Math.round((Date.parse(hoy) - Date.parse(ultima)) / 86400000);\n  if (dias < 14) { return []; }\n}\nreturn [{ json: { hoy: hoy, ultimoAnalisis: ultima || 'ninguno' } }];"
+      }
+    },
+    {
+      "name": "Leer Hallazgos Previos",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "read",
+        "documentId": { "value": "YOUR_GOOGLE_SHEET_ID" },
+        "sheetName": { "value": "Hallazgos" },
+        "note": "Lee los hallazgos anteriores para comparar cambios"
+      }
+    },
+    {
+      "name": "Data Competidores",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "read",
+        "documentId": { "value": "YOUR_COMPETITORS_SHEET_ID" },
+        "note": "Lista de competidores con columnas: nombre, nicho, home, pricing, blog"
+      }
+    },
+    {
+      "name": "Expandir URLs",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "const items = $input.all();\nconst result = [];\nfor (const entry of items) {\n  const item = entry.json;\n  const urlMap = { Home: item.home, Pricing: item.pricing, Blog: item.blog };\n  for (const [tipo, url] of Object.entries(urlMap)) {\n    if (url) {\n      result.push({ json: { tipo, url, competidor: item.nombre, nicho: item.nicho } });\n    }\n  }\n}\nreturn result;"
+      }
+    },
+    {
+      "name": "Loop por URLs",
+      "type": "n8n-nodes-base.splitInBatches"
+    },
+    {
+      "name": "HTTP Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "={{$json.url}}",
+        "options": { "timeout": 30000 }
+      }
+    },
+    {
+      "name": "HTML Extract",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "const original = $('Expandir URLs').item.json;\nconst item = $input.item.json;\nlet html = item.data || item.body || item.html || '';\nlet texto = html\n  .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\nreturn { json: { ...original, content: texto.substring(0, 12000), lectura_ok: texto.length >= 200 } };"
+      }
+    },
+    {
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "parameters": { "amount": 3 }
+    },
+    {
+      "name": "Buscar Hallazgo Anterior",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "note": "Busca el último hallazgo registrado para este competidor y fuente, para comparar cambios"
+      }
+    },
+    {
+      "name": "Es Mercado?",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "leftValue": "={{$json.nicho}}", "rightValue": "Mercado", "operator": { "type": "string", "operation": "contains" } }]
+        }
+      }
+    },
+    {
+      "name": "Gemini Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "note": "Análisis competitivo con IA. El prompt incluye contenido actual + hallazgo anterior para detectar solo cambios reales. Requiere Google Gemini API key."
+      }
+    },
+    {
+      "name": "Gemini Analysis Mercado",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "note": "Análisis de tendencias de mercado con IA"
+      }
+    },
+    {
+      "name": "Parse Gemini Response",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "note": "Parsea el JSON devuelto por Gemini y formatea para Google Sheets: Fecha, Competidor, Tipo, Funcionalidades, Precio, Tono, Hallazgo, Por qué importa, Acción recomendada, Nivel de amenaza"
+      }
+    },
+    {
+      "name": "Append Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "append",
+        "documentId": { "value": "YOUR_GOOGLE_SHEET_ID" },
+        "sheetName": { "value": "Hallazgos" }
+      }
+    },
+    {
+      "name": "Append Google Sheets Mercado",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "append",
+        "documentId": { "value": "YOUR_GOOGLE_SHEET_ID" },
+        "sheetName": { "value": "Mercado" }
+      }
+    },
+    {
+      "name": "Guardar fecha ciclo",
+      "type": "n8n-nodes-base.dataTable",
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "note": "Registra la fecha del ciclo completado para controlar los 14 días"
+      }
+    }
+  ],
+  "connections": {
+    "Revisar cada dia": { "main": [[{ "node": "Leer ciclos" }]] },
+    "Leer ciclos": { "main": [[{ "node": "Toca analizar" }]] },
+    "Toca analizar": { "main": [[{ "node": "Leer Hallazgos Previos" }]] },
+    "Leer Hallazgos Previos": { "main": [[{ "node": "Data Competidores" }]] },
+    "Data Competidores": { "main": [[{ "node": "Expandir URLs" }]] },
+    "Expandir URLs": { "main": [[{ "node": "Loop por URLs" }]] },
+    "Loop por URLs": { "main": [[{ "node": "Guardar fecha ciclo" }], [{ "node": "HTTP Scraper" }]] },
+    "HTTP Scraper": { "main": [[{ "node": "HTML Extract" }]] },
+    "HTML Extract": { "main": [[{ "node": "Wait" }]] },
+    "Wait": { "main": [[{ "node": "Buscar Hallazgo Anterior" }]] },
+    "Buscar Hallazgo Anterior": { "main": [[{ "node": "Es Mercado?" }]] },
+    "Es Mercado?": { "main": [[{ "node": "Gemini Analysis Mercado" }], [{ "node": "Gemini Analysis" }]] },
+    "Gemini Analysis": { "main": [[{ "node": "Parse Gemini Response" }]] },
+    "Parse Gemini Response": { "main": [[{ "node": "Append Google Sheets" }]] },
+    "Gemini Analysis Mercado": { "main": [[{ "node": "Append Google Sheets Mercado" }]] },
+    "Append Google Sheets": { "main": [[{ "node": "Loop por URLs" }]] },
+    "Append Google Sheets Mercado": { "main": [[{ "node": "Loop por URLs" }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
