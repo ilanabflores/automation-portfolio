@@ -17,6 +17,7 @@ Workflows de automatización construidos con n8n para operaciones de marketing d
 | Proyecto | Descripción |
 |---|---|
 | [Análisis de competencia con IA](./analisis-competencia-ia/) | Scraping automatizado de competidores + análisis con Gemini AI cada 14 días, guardado en Google Sheets |
+| [Informe automático de competencia](./informe-competencia/) | Genera y envía por email un informe HTML ejecutivo con resumen IA, radar de competidores, panorama de mercado y recomendaciones |
 
 ### 🤖 Agentes con IA
 | Proyecto | Descripción |

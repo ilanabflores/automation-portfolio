@@ -1,0 +1,251 @@
+{
+  "name": "Informe automático - Competencia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 12 }] }
+      },
+      "id": "b8bec499-9243-4c87-8bff-354c421855d2",
+      "name": "Revisar cada dia",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [240, 208]
+    },
+    {
+      "parameters": {},
+      "id": "54f9b225-49fd-4a10-9c5f-3d9aa6d19f0c",
+      "name": "Generar ahora (prueba)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": { "__rl": true, "mode": "id", "value": "YOUR_SPREADSHEET_ID" },
+        "sheetName": { "__rl": true, "mode": "id", "value": "YOUR_FICHA_VIVA_SHEET_ID", "cachedResultName": "Ficha Viva" },
+        "options": {}
+      },
+      "id": "ed95076e-d80e-4470-91ce-dcd9dff20e49",
+      "name": "Leer Ficha Viva",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [544, 304],
+      "credentials": {
+        "googleApi": { "id": "YOUR_GOOGLE_SERVICE_ACCOUNT_CREDENTIAL_ID", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Filtra hallazgos relevantes del ciclo actual, calcula KPIs\n   (crítica/alta/media/baja) y arma el prompt para Gemini.\n   Devuelve un único item con { fecha, total, critica, alta, media, baja, items, prompt }.\n   Si la ejecución es automática y ya se procesó esta fecha, devuelve []. */\nconst rows = $input.all().map(i => i.json);\n// ... (lógica de filtrado y construcción de prompt)\nreturn [{ json: { fecha: '', total: rows.length, critica: 0, alta: 0, media: 0, baja: 0, items: [], prompt: '' } }];"
+      },
+      "id": "177ea90b-2934-4666-9bcf-23cb5a797508",
+      "name": "Preparar datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [848, 304]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": { "__rl": true, "mode": "id", "value": "YOUR_DATA_TABLE_ID", "cachedResultName": "informes_enviados" },
+        "returnAll": true
+      },
+      "id": "d8e61263-f3c0-484a-81c6-5f9f20b40362",
+      "name": "Leer fechas enviadas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [820, 520],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "/* Comprueba si el ciclo actual ya fue enviado comparando\n   la fecha del Preparar datos con las filas de informes_enviados.\n   Si ya existe o no hay hallazgos y no es prueba manual, devuelve [].\n   En prueba manual, deja pasar siempre. */\nreturn [{ json: $('Preparar datos').first().json }];"
+      },
+      "id": "535905b2-ddc6-403e-abcb-efcd0c560431",
+      "name": "Comprobar envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 520]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": { "__rl": true, "mode": "id", "value": "YOUR_SPREADSHEET_ID_2" },
+        "sheetName": { "__rl": true, "mode": "id", "value": "YOUR_COMPETIDORES_SHEET_ID", "cachedResultName": "Competidores" },
+        "options": {}
+      },
+      "id": "0554c5e0-ca20-4df9-a4d5-93acd2973abc",
+      "name": "Leer Competidores",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1152, 704],
+      "executeOnce": true,
+      "credentials": {
+        "googleApi": { "id": "YOUR_GOOGLE_SERVICE_ACCOUNT_CREDENTIAL_ID", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": { "__rl": true, "mode": "id", "value": "YOUR_SPREADSHEET_ID_2" },
+        "sheetName": { "__rl": true, "mode": "id", "value": "YOUR_MERCADO_SHEET_ID", "cachedResultName": "Mercado" },
+        "options": {}
+      },
+      "id": "c5852562-a1c3-47ba-bcff-4d373dec6d1a",
+      "name": "Leer Mercado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1152, 528],
+      "executeOnce": true,
+      "credentials": {
+        "googleApi": { "id": "YOUR_GOOGLE_SERVICE_ACCOUNT_CREDENTIAL_ID", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Combina datos de Preparar datos + Leer Competidores + Leer Mercado.\n   Construye el prompt completo para Gemini incluyendo:\n   - hallazgos del ciclo de competidores\n   - datos de mercado (tendencias, tamaño, implicaciones)\n   - descripción del producto propio para comparación\n   Devuelve un único item con todos los datos + prompt. */\nreturn [{ json: {} }];"
+      },
+      "id": "ad54e957-4caf-4fa4-bb76-5ffc70ddf827",
+      "name": "Añadir mercado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1152, 304]
+    },
+    {
+      "parameters": {
+        "modelId": { "__rl": true, "mode": "id", "value": "models/gemini-3.5-flash-lite" },
+        "messages": { "values": [{ "content": "={{ $json.prompt }}" }] },
+        "jsonOutput": true,
+        "options": { "maxOutputTokens": 16000, "temperature": 0.3, "thinkingBudget": 512 }
+      },
+      "id": "69d994a0-ca5b-4aba-a8e0-948b828ff744",
+      "name": "Redactar textos con Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [1200, 80],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googlePalmApi": { "id": "YOUR_GEMINI_API_CREDENTIAL_ID", "name": "Google Gemini API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Para cada competidor en la lista, genera un item con:\n   { nombre, dominio, url } donde url es el favicon de Google.\n   Solo incluye competidores que tienen dominio. */\nreturn [];"
+      },
+      "id": "41161647-8c82-4830-817e-29589acca1d3",
+      "name": "Lista de logos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 512]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } },
+          "timeout": 20000
+        }
+      },
+      "id": "340efcca-17a4-4078-bf45-8b74051bccb7",
+      "name": "Descargar logo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1648, 512],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Construye el HTML completo del informe:\n   - Cabecera oscura con fecha del ciclo y métricas\n   - 4 tarjetas KPI (total páginas, amenazas altas, medias, sin cambios)\n   - Barra de distribución proporcional por nivel\n   - Resumen ejecutivo (texto de Gemini)\n   - Radar de competidores (grid 5 columnas con logo + nivel)\n   - Hallazgos con comparación frente al producto propio\n   - Panorama de mercado con gráfico de barras y cifras clave\n   - Recomendaciones ordenadas por prioridad\n   Devuelve { subject, html (inline para el body del email), htmlFile (con logos embebidos en base64 para el adjunto) } */\nreturn [{ json: { subject: 'Informe de competencia - ', html: '', htmlFile: '' } }];"
+      },
+      "id": "3e7ee01d-2867-42d7-b883-fdd391416711",
+      "name": "Armar informe HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 304]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Convierte htmlFile a binario y lo adjunta como archivo .html\n   para que pueda enviarse como adjunto en el email. */\nreturn [{ json: { subject: $json.subject, html: $json.html }, binary: { informe: {} } }];"
+      },
+      "id": "e4fba14d-c9da-46af-8dc7-8575204bbbd5",
+      "name": "Adjuntar archivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 304]
+    },
+    {
+      "parameters": {
+        "fromEmail": "YOUR_FROM_EMAIL",
+        "toEmail": "YOUR_TO_EMAIL",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "fileAttachments": "informe"
+        }
+      },
+      "id": "88939d0e-2333-4c4f-809a-349163e08104",
+      "name": "Enviar informe por correo",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1744, 304],
+      "credentials": {
+        "smtp": { "id": "YOUR_SMTP_CREDENTIAL_ID", "name": "SMTP account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Guarda la fecha del ciclo en static data para referencia.\n   Devuelve { ultimaFechaEnviada } para el nodo de DataTable. */\nreturn [{ json: { ultimaFechaEnviada: $('Preparar datos').first().json.fecha } }];"
+      },
+      "id": "1d276c40-4fe4-4cc7-b7df-e6cf4c030521",
+      "name": "Registrar envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2048, 304]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": { "__rl": true, "mode": "id", "value": "YOUR_DATA_TABLE_ID", "cachedResultName": "informes_enviados" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "fecha_ciclo": "={{ $json.ultimaFechaEnviada }}" },
+          "schema": [{ "id": "fecha_ciclo", "displayName": "fecha_ciclo", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }]
+        }
+      },
+      "id": "31c03074-2713-46e5-bd48-1437e8696168",
+      "name": "Guardar fecha enviada",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2260, 304]
+    }
+  ],
+  "connections": {
+    "Leer Ficha Viva": { "main": [[{ "node": "Preparar datos", "type": "main", "index": 0 }]] },
+    "Generar ahora (prueba)": { "main": [[{ "node": "Leer Ficha Viva", "type": "main", "index": 0 }]] },
+    "Revisar cada dia": { "main": [[{ "node": "Leer Ficha Viva", "type": "main", "index": 0 }]] },
+    "Enviar informe por correo": { "main": [[{ "node": "Registrar envio", "type": "main", "index": 0 }]] },
+    "Leer Mercado": { "main": [[{ "node": "Añadir mercado", "type": "main", "index": 0 }]] },
+    "Añadir mercado": { "main": [[{ "node": "Redactar textos con Gemini", "type": "main", "index": 0 }]] },
+    "Armar informe HTML": { "main": [[{ "node": "Adjuntar archivo", "type": "main", "index": 0 }]] },
+    "Adjuntar archivo": { "main": [[{ "node": "Enviar informe por correo", "type": "main", "index": 0 }]] },
+    "Leer Competidores": { "main": [[{ "node": "Leer Mercado", "type": "main", "index": 0 }]] },
+    "Redactar textos con Gemini": { "main": [[{ "node": "Lista de logos", "type": "main", "index": 0 }]] },
+    "Lista de logos": { "main": [[{ "node": "Descargar logo", "type": "main", "index": 0 }]] },
+    "Descargar logo": { "main": [[{ "node": "Armar informe HTML", "type": "main", "index": 0 }]] },
+    "Preparar datos": { "main": [[{ "node": "Leer fechas enviadas", "type": "main", "index": 0 }]] },
+    "Leer fechas enviadas": { "main": [[{ "node": "Comprobar envio", "type": "main", "index": 0 }]] },
+    "Comprobar envio": { "main": [[{ "node": "Leer Competidores", "type": "main", "index": 0 }]] },
+    "Registrar envio": { "main": [[{ "node": "Guardar fecha enviada", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "note": "Reemplaza YOUR_SPREADSHEET_ID, YOUR_SPREADSHEET_ID_2, YOUR_FICHA_VIVA_SHEET_ID, YOUR_COMPETIDORES_SHEET_ID, YOUR_MERCADO_SHEET_ID, YOUR_DATA_TABLE_ID, YOUR_GOOGLE_SERVICE_ACCOUNT_CREDENTIAL_ID, YOUR_GEMINI_API_CREDENTIAL_ID, YOUR_SMTP_CREDENTIAL_ID, YOUR_FROM_EMAIL y YOUR_TO_EMAIL con tus propios valores." }
+}
