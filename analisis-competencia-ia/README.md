@@ -1,56 +1,49 @@
-# Análisis de Competencia con IA (Automático)
+# Análisis de Competencia con IA
 
-Scraping automatizado de competidores con análisis de inteligencia artificial cada 14 días. Lee las webs de los competidores, compara con la revisión anterior y genera hallazgos accionables clasificados por nivel de amenaza.
+Monitoreo automatizado de 10 competidores directos cada 14 días: scraping de sus páginas web, análisis con Gemini AI y detección de cambios reales frente al ciclo anterior. Los resultados alimentan el workflow de informe ejecutivo que se envía a jefatura.
 
-## Problema que resuelve
+## El problema
 
-Hacer seguimiento manual de competidores (revisar sus webs, precios, funcionalidades, mensajes) lleva horas y se hace de forma inconsistente. Este workflow lo hace solo cada dos semanas: lee las páginas, compara con el análisis anterior y genera un informe estructurado con solo los cambios relevantes.
+Revisar manualmente 10 competidores — página por página, funcionalidades, precios, mensajes — y redactar un resumen estructurado toma entre 3 y 4 horas por ciclo. Sin automatización, ese tiempo compite con otras prioridades y el monitoreo se vuelve irregular. Con este workflow, el ciclo completo corre solo cada 14 días sin intervención humana.
+
+## Qué detectó en producción
+
+- **Lanzamientos de nuevas funcionalidades** de competidores antes de que fueran anunciados públicamente
+- **Cambios de precios y planes** con comparación directa frente al ciclo anterior
+- **Tendencias del mercado** (a través de 5 fuentes especializadas) que informaron decisiones de roadmap de producto
+
+Los hallazgos se entregan a jefatura en cada ciclo como parte del proceso de inteligencia competitiva del equipo.
 
 ## Cómo funciona
 
 ```
-Trigger (diario 10:00 — ejecuta el análisis cada 14 días)
-  → Verificar si han pasado ≥14 días desde el último ciclo
-  → Leer lista de competidores desde Google Sheets
-  → Leer hallazgos previos (para comparar cambios)
-  → Por cada URL de competidor (home, pricing, blog):
-      ├── HTTP Scraper → extracción de texto limpio
-      ├── Esperar 3s (control de rate limit)
-      ├── Buscar hallazgo anterior para esta fuente
-      ├── ¿Es fuente de mercado o competidor?
-      │     ├── Competidor → Gemini AI: análisis de producto/comunicación
-      │     └── Mercado → Gemini AI: análisis de tendencias de sector
-      ├── Parsear respuesta JSON de Gemini
-      └── Guardar en Google Sheets (Hallazgos / Mercado)
+Trigger (diario 10:00 — ejecuta el análisis solo cada ≥14 días)
+  → Leer lista de competidores + URLs desde Google Sheets
+  → Leer hallazgos del ciclo anterior (para comparar)
+  → Por cada fuente (10 competidores + 5 fuentes de mercado):
+      → HTTP Request: scraping de la URL
+      → Code: limpiar HTML, extraer texto relevante
+      → Gemini AI: ¿qué cambió respecto al ciclo anterior?
+          ├── Competidor → análisis de producto, precios, comunicación
+          └── Mercado → tendencias del sector, tamaño, crecimiento
+      → Clasificar nivel de amenaza: Crítica / Alta / Media / Baja
+      → Guardar en Google Sheets (Hallazgos o Mercado)
   → Registrar fecha del ciclo completado
+  → Trigger: lanzar workflow de informe automático
 ```
+
+## Por qué solo reporta cambios reales
+
+Gemini tiene instrucciones explícitas para no reportar una fuente si no cambió nada desde el ciclo anterior. Esto evita el ruido de recibir "sin novedades" en cada fila y mantiene los datos limpios con solo lo que requiere atención.
 
 ## Output generado
 
-**Por competidor (hoja Hallazgos):**
-- Tipo: Producto / Comunicación / Sin cambios / Error de lectura
-- Funcionalidades detectadas
-- Precio (si está publicado)
-- Tono de comunicación
-- Hallazgo: qué cambió exactamente desde la revisión anterior
-- Por qué importa para el negocio
-- Acción recomendada: Ignorar / Investigar / Comunicar / Valorar para producto / Trasladar a ventas
-- Nivel de amenaza: Baja / Media / Alta / Crítica
-
-**Tendencias de mercado (hoja Mercado):**
-- Tendencia identificada
-- Tamaño/crecimiento del mercado (si se menciona)
-- Implicación para el negocio
-- Relevancia
+Cada fila en Google Sheets incluye: tipo de cambio, funcionalidades detectadas, precio publicado, hallazgo concreto, por qué importa para el negocio, acción recomendada (Ignorar / Investigar / Comunicar / Valorar para producto / Trasladar a ventas) y nivel de amenaza.
 
 ## Stack
-- **Trigger:** Schedule diario + lógica de ciclos (cada 14 días)
-- **Fuentes:** HTTP Scraper (webs de competidores) + Google Sheets (lista de URLs y hallazgos previos)
-- **IA:** Gemini AI (análisis competitivo + análisis de mercado)
-- **Destino:** Google Sheets (2 hojas)
-- **Lógica:** JavaScript (Function nodes)
+- **Trigger:** Schedule diario + lógica de ciclos (≥14 días desde el último)
+- **Scraping:** HTTP Request (una petición por URL de fuente)
+- **IA:** Google Gemini (via HTTP Request)
+- **Almacenamiento:** Google Sheets (hojas Hallazgos y Mercado)
+- **Lógica:** JavaScript (Code nodes) — parseo de HTML, comparación entre ciclos, clasificación
 - **Nodos:** 22
-
-## Lo que lo hace diferente
-
-No solo scrapeae — compara contra la revisión anterior y reporta únicamente lo que cambió. Si no hay cambios de negocio relevantes, lo dice explícitamente en vez de generar ruido.

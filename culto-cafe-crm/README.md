@@ -1,36 +1,39 @@
 # CRM Automatizado — Culto Café
 
-Automatización del pipeline de onboarding de cafeterías: detecta cambios de estado en la base de datos cada 15 minutos y dispara emails personalizados según la etapa del lead.
+Pipeline de onboarding de cafeterías: detecta cambios de estado en PostgreSQL cada 15 minutos y dispara el email correspondiente a cada etapa. Ningún email se envía manualmente ni se duplica.
 
-## Problema que resuelve
+## El problema
 
-El proceso de dar de alta una cafetería en Culto Café pasa por varias etapas (nuevo → contactada → verificada → activa). Sin automatización, habría que enviar cada email manualmente al detectar el cambio de estado. Este workflow lo hace solo.
+Dar de alta una cafetería en Culto Café pasa por cuatro etapas: nuevo → contactada → verificada → activa. Sin automatización, alguien tiene que estar pendiente de cuándo cambia el estado de cada lead y enviar el email correcto a tiempo. Con volumen, eso es imposible de sostener manualmente.
 
 ## Cómo funciona
 
 ```
 Trigger (cada 15 minutos)
-  → PostgreSQL: consulta leads cuyo estado cambió
-     (estado distinto de ultimo_estado_notificado)
+  → PostgreSQL: buscar leads donde estado ≠ ultimo_estado_notificado
   → Por cada lead con cambio:
-      ├── Estado = nuevo      → Email de bienvenida
-      ├── Estado = contactada → Email de seguimiento
-      ├── Estado = verificada → Email "ficha verificada"
-      └── Estado = activa     → Email de bienvenida oficial
+      ├── nuevo      → Email de bienvenida + confirmación de recepción
+      ├── contactada → Email de seguimiento, invita a resolver dudas
+      ├── verificada → Email "ya está verificada, falta el pago"
+      └── activa     → Email de bienvenida oficial, ya aparecen en la web
   → PostgreSQL: actualizar ultimo_estado_notificado
-     (evita enviar el mismo email dos veces)
+     (garantiza que no se repite el mismo email si el workflow vuelve a correr)
 ```
 
-## Emails del flujo
+## Emails del pipeline
 
-| Estado | Asunto | Contenido |
-|---|---|---|
-| nuevo | "Ya tenemos tu solicitud" | Confirmación de recepción, explica el proceso de revisión |
-| contactada | "Seguimos con lo tuyo" | Seguimiento, invita a resolver dudas |
-| verificada | "Tu ficha ya está verificada" | Avisa que falta solo el paso de pago |
-| activa | "¡Ya eres parte de Culto Café!" | Bienvenida oficial, confirma que aparecen en la web |
+| Estado | Qué comunica |
+|---|---|
+| nuevo | Recibimos tu solicitud, en breve te escribimos |
+| contactada | Seguimos con el proceso, resuelve dudas respondiendo este correo |
+| verificada | Ficha verificada, solo falta confirmar el pago |
+| activa | Bienvenida oficial, ya aparecéis en la web y en el agente |
 
-Todos los emails están personalizados con nombre del contacto y nombre del local.
+Todos los emails se personalizan con nombre del contacto y nombre del local.
+
+## Por qué la lógica de `ultimo_estado_notificado` importa
+
+El workflow corre cada 15 minutos. Sin esta columna, enviaría el mismo email decenas de veces. La columna actúa como memoria: solo hay acción cuando hay un estado nuevo que aún no se notificó.
 
 ## Stack
 - **Trigger:** Schedule (cada 15 minutos)

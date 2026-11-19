@@ -1,31 +1,34 @@
 # Agente Conversacional — Culto Café
 
-Chatbot con personalidad propia para recomendar cafeterías de especialidad en Malasaña, Madrid. Consulta una base de datos real en tiempo real y mantiene contexto de la conversación.
+Asistente de recomendaciones de cafeterías para Culto Café, un directorio de cafeterías de especialidad en Malasaña, Madrid. El agente tiene personalidad propia, consulta datos reales en Supabase y mantiene contexto durante la conversación.
 
 ## Qué es
 
-"Culto" es una taza de café azul con voz propia. El agente recibe la consulta del usuario (zona, plan: trabajar, quedar, catar), consulta la base de datos de cafeterías verificadas y devuelve recomendaciones personalizadas con datos reales: nivel de ruido, wifi, enchufes, terraza, pet-friendly, precio y links a Google Maps.
+"Culto" es una taza de café azul con voz propia. Cuando un usuario le dice zona y plan (trabajar, quedar, catar), consulta la base de datos de cafeterías verificadas y devuelve recomendaciones personalizadas con datos reales: nivel de ruido, wifi, enchufes, terraza, pet-friendly, precio y links a Google Maps.
+
+El agente está embebido en la web de Culto Café como chat público.
 
 ## Cómo funciona
 
 ```
 Chat Trigger (interfaz pública embebible)
-  → Agente LangChain (con system prompt de personalidad)
+  → Agente LangChain
+      ├── Sistema de personalidad (tutea, frases cortas, tono urbano)
       ├── Memoria de conversación (ventana de 3 turnos)
       ├── Google Gemini (modelo de lenguaje)
       └── Tool: consulta base de datos en Supabase
-              → Devuelve fichas reales de cafeterías
-  → Respuesta con recomendaciones + links a Maps
+              → Tabla cafeterias_para_agente
+              → Devuelve fichas reales con todos los atributos
+  → Respuesta con recomendaciones + links a Google Maps
 ```
 
-## Características del agente
+## Decisiones de diseño que marcan la diferencia
 
-- **Personalidad definida:** tutea, frases cortas, tono urbano y cercano, nunca corporativo
-- **Datos reales:** nunca inventa cafeterías — consulta Supabase antes de responder
-- **Memoria:** recuerda el contexto dentro de la conversación (zona, gustos)
-- **Lógica de ruido:** traduce el campo numérico `ruido_1a5` a lenguaje natural ("muy tranquilo, casi de biblioteca")
-- **Links a Maps:** genera URLs de Google Maps con las coordenadas lat/lng de cada ficha
-- **Límites claros:** si preguntan por una zona fuera de Malasaña, lo dice y ofrece alternativas
+- **Nunca inventa datos:** el agente no responde hasta consultar Supabase. Si algo no está en la ficha, no lo menciona.
+- **Ruido traducido a lenguaje natural:** el campo `ruido_1a5` se convierte en "muy tranquilo, casi de biblioteca" o "animado, con bullicio" — no se expone el número.
+- **Links a Maps generados dinámicamente** con las coordenadas lat/lng de cada cafetería.
+- **Límites explícitos:** si preguntan por una zona fuera de Malasaña, lo dice y ofrece alternativas dentro de la zona. No intenta cubrir lo que no tiene datos.
+- **Personalidad definida y consistente:** el system prompt tiene reglas claras sobre cuándo mencionar personajes secundarios, cómo abrir y cerrar conversaciones y cómo variar los saludos.
 
 ## Stack
 - **Trigger:** Chat Trigger (interfaz pública embebible)
