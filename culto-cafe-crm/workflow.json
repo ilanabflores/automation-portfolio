@@ -1,454 +1,232 @@
 {
-  "name": "Culto Café - Automatización CRM (leads)",
+  "name": "Culto Café - CRM Webhook",
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 15
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        -864,
-        224
-      ],
-      "id": "33e6aaae-3c51-45ad-92e9-8b9925a6d5aa",
-      "name": "Cada 15 minutos"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "select id, nombre, contacto, email, telefono, plan, estado from leads_cafeterias where estado is distinct from coalesce(ultimo_estado_notificado, '__ninguno__');",
+        "httpMethod": "POST",
+        "path": "culto-cafe-crm",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        -624,
-        224
-      ],
-      "id": "48de19ab-f2a4-4c83-bfd8-472683bc24a9",
-      "name": "Leads con estado pendiente de notificar",
-      "credentials": {
-        "postgres": {
-          "id": "WTjLmMnAOzRBR8oC",
-          "name": "Postgres account"
-        }
-      }
+      "id": "webhook-trigger",
+      "name": "Webhook: cambio de estado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "YOUR_WEBHOOK_ID"
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "combinator": "and",
+          "options": { "caseSensitive": false },
           "conditions": [
             {
-              "id": "cond-nuevo",
-              "leftValue": "={{$json.estado}}",
+              "leftValue": "={{ $json.body.estado }}",
               "rightValue": "nuevo",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "operator": { "type": "string", "operation": "equals" }
             }
           ]
-        },
-        "options": {}
+        }
       },
+      "id": "if-nuevo",
+      "name": "¿Estado = nuevo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        -352,
-        224
-      ],
-      "id": "882f14b2-a31a-484b-8ec3-a6f04ddffe64",
-      "name": "¿Estado = nuevo?"
+      "position": [500, 300]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "combinator": "and",
+          "options": { "caseSensitive": false },
           "conditions": [
             {
-              "id": "cond-contactada",
-              "leftValue": "={{$json.estado}}",
+              "leftValue": "={{ $json.body.estado }}",
               "rightValue": "contactada",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "operator": { "type": "string", "operation": "equals" }
             }
           ]
-        },
-        "options": {}
+        }
       },
+      "id": "if-contactada",
+      "name": "¿Estado = contactada?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        -96,
-        384
-      ],
-      "id": "b4f4517f-74d1-45c5-ac68-dbd080a16ccf",
-      "name": "¿Estado = contactada?"
+      "position": [500, 480]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "combinator": "and",
+          "options": { "caseSensitive": false },
           "conditions": [
             {
-              "id": "cond-verificada",
-              "leftValue": "={{$json.estado}}",
+              "leftValue": "={{ $json.body.estado }}",
               "rightValue": "verificada",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "operator": { "type": "string", "operation": "equals" }
             }
           ]
-        },
-        "options": {}
+        }
       },
+      "id": "if-verificada",
+      "name": "¿Estado = verificada?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        176,
-        544
-      ],
-      "id": "74b57404-af20-428b-970d-db5c9ea8a86b",
-      "name": "¿Estado = verificada?"
+      "position": [500, 660]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "combinator": "and",
+          "options": { "caseSensitive": false },
           "conditions": [
             {
-              "id": "cond-activa",
-              "leftValue": "={{$json.estado}}",
+              "leftValue": "={{ $json.body.estado }}",
               "rightValue": "activa",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "operator": { "type": "string", "operation": "equals" }
             }
           ]
-        },
-        "options": {}
+        }
       },
+      "id": "if-activa",
+      "name": "¿Estado = activa?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        432,
-        704
-      ],
-      "id": "d5eee5e6-8c89-450f-bc35-ad358acaab2c",
-      "name": "¿Estado = activa?"
+      "position": [500, 840]
     },
     {
       "parameters": {
         "fromEmail": "cafeculto2@gmail.com",
-        "toEmail": "={{$json.email}}",
-        "subject": "=Ya tenemos tu solicitud, {{$json.contacto}} ☕",
-        "emailFormat": "text",
-        "text": "=Hola {{$json.contacto.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}},\n\nNos ha llegado tu solicitud para sumar a {{$json.nombre}} a Culto Café, con el plan {{$json.plan}}.\n\nAhora toca lo nuestro: vamos a darle un vistazo a la ficha para asegurarnos de que todo encaje con lo que buscamos (café con criterio, buen ambiente, lugares reales). En unos días te escribimos con los siguientes pasos.\n\nGracias por sumarte,\n\nEl equipo de Culto Café\n—\nLugares reales. Personas reales. Planes reales.\nmicultocafe.netlify.app",
-        "options": {
-          "appendAttribution": false
-        }
+        "toEmail": "={{ $('Webhook: cambio de estado').item.json.body.email }}",
+        "subject": "Ya tenemos tu solicitud, {{ $('Webhook: cambio de estado').item.json.body.contacto }} ☕",
+        "text": "Hola {{ $('Webhook: cambio de estado').item.json.body.contacto }},\n\nHemos recibido tu solicitud. Pronto nos ponemos en contacto contigo.\n\nEl equipo de Culto Café",
+        "options": { "appendAttribution": false }
       },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        -96,
-        80
-      ],
-      "id": "6fa8ba9d-acf8-4e8a-ac28-9ace858626b5",
+      "id": "email-nuevo",
       "name": "Email: bienvenida (nuevo)",
-      "webhookId": "afb08873-938f-4566-8f26-5e79a5156759",
-      "credentials": {
-        "smtp": {
-          "id": "Qqco1SxlDeLtLxIt",
-          "name": "SMTP account"
-        }
-      }
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 220],
+      "credentials": { "smtp": { "id": "YOUR_SMTP_CREDENTIAL_ID", "name": "SMTP" } }
     },
     {
       "parameters": {
         "fromEmail": "hola@culto-cafe.com",
-        "toEmail": "={{$json.email}}",
-        "subject": "=Seguimos con lo tuyo, {{$json.contacto}}",
-        "emailFormat": "text",
-        "text": "=Hola {{$json.contacto.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}},\n\nQueríamos decirte que seguimos con el proceso de alta de {{$json.nombre}} en Culto Café.\n\nSi tienes alguna duda sobre el plan {{$json.plan}}, o si hay algo que quieras confirmarnos sobre vuestro espacio, solo responde a este correo.\n\nUn saludo,\n\nEl equipo de Culto Café\n—\nLugares reales. Personas reales. Planes reales.\nmicultocafe.netlify.app",
-        "options": {
-          "appendAttribution": false
-        }
+        "toEmail": "={{ $('Webhook: cambio de estado').item.json.body.email }}",
+        "subject": "Seguimos con lo tuyo, {{ $('Webhook: cambio de estado').item.json.body.contacto }}",
+        "text": "Hola {{ $('Webhook: cambio de estado').item.json.body.contacto }},\n\nTu solicitud está en proceso. Te avisamos pronto.\n\nEl equipo de Culto Café",
+        "options": { "appendAttribution": false }
       },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        176,
-        240
-      ],
-      "id": "fe1be645-7897-43ea-9478-0a73e338417a",
+      "id": "email-contactada",
       "name": "Email: seguimiento (contactada)",
-      "webhookId": "28efb41b-30d8-4b70-8c63-4376e7297ef6",
-      "credentials": {
-        "smtp": {
-          "id": "Qqco1SxlDeLtLxIt",
-          "name": "SMTP account"
-        }
-      }
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 400],
+      "credentials": { "smtp": { "id": "YOUR_SMTP_CREDENTIAL_ID", "name": "SMTP" } }
     },
     {
       "parameters": {
         "fromEmail": "hola@culto-cafe.com",
-        "toEmail": "={{$json.email}}",
-        "subject": "Tu ficha ya está verificada, {{$json.contacto}}",
-        "emailFormat": "text",
-        "text": "=Hola {{$json.contacto.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}},\n\nBuenas noticias: ya verificamos la ficha de {{$json.nombre}}.\n\nSolo falta un paso para activar el plan {{$json.plan}} — te contamos cómo confirmar el pago en el próximo correo.\n\nNos vemos pronto en el mapa,\n\nEl equipo de Culto Café\n—\nLugares reales. Personas reales. Planes reales.\nmicultocafe.netlify.app",
-        "options": {
-          "appendAttribution": false
-        }
+        "toEmail": "={{ $('Webhook: cambio de estado').item.json.body.email }}",
+        "subject": "Tu ficha ya está verificada, {{ $('Webhook: cambio de estado').item.json.body.contacto }}",
+        "text": "Hola {{ $('Webhook: cambio de estado').item.json.body.contacto }},\n\nTu ficha ha sido verificada correctamente.\n\nEl equipo de Culto Café",
+        "options": { "appendAttribution": false }
       },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        432,
-        400
-      ],
-      "id": "a7d17cb3-a0da-4f02-8286-4ac4d71b5397",
+      "id": "email-verificada",
       "name": "Email: verificada",
-      "webhookId": "152cfad0-1a40-4af6-a693-e79910bec271",
-      "credentials": {
-        "smtp": {
-          "id": "Qqco1SxlDeLtLxIt",
-          "name": "SMTP account"
-        }
-      }
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 580],
+      "credentials": { "smtp": { "id": "YOUR_SMTP_CREDENTIAL_ID", "name": "SMTP" } }
     },
     {
       "parameters": {
         "fromEmail": "hola@culto-cafe.com",
-        "toEmail": "={{$json.email}}",
-        "subject": "=¡{{$json.nombre}} ya es parte de Culto Café! 🎉",
-        "emailFormat": "text",
-        "text": "=Hola {{$json.contacto.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}},\n\n{{$json.nombre}} ya está dentro, con el plan {{$json.plan}}.\n\nA partir de ahora aparecéis en la web y en las recomendaciones de Culto, nuestro agente. Gracias por confiar en nosotras para contar vuestra historia.\n\nBienvenidos,\n\nEl equipo de Culto Café\n—\nLugares reales. Personas reales. Planes reales.\nmicultocafe.netlify.app",
-        "options": {
-          "appendAttribution": false
-        }
+        "toEmail": "={{ $('Webhook: cambio de estado').item.json.body.email }}",
+        "subject": "¡{{ $('Webhook: cambio de estado').item.json.body.nombre }} ya es parte de Culto Café! 🎉",
+        "text": "Hola {{ $('Webhook: cambio de estado').item.json.body.contacto }},\n\n¡Bienvenida/o oficialmente a Culto Café! Ya puedes disfrutar de todos los beneficios.\n\nEl equipo de Culto Café",
+        "options": { "appendAttribution": false }
       },
+      "id": "email-activa",
+      "name": "Email: bienvenida oficial (activa)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [
-        688,
-        560
-      ],
-      "id": "f86efe5e-0218-47cb-98cc-5928bc9cf9e4",
-      "name": "Email: bienvenida oficial (activa)",
-      "webhookId": "6f72e22a-5504-482c-a1bf-978acb0a12ea",
-      "credentials": {
-        "smtp": {
-          "id": "Qqco1SxlDeLtLxIt",
-          "name": "SMTP account"
-        }
-      }
+      "position": [760, 760],
+      "credentials": { "smtp": { "id": "YOUR_SMTP_CREDENTIAL_ID", "name": "SMTP" } }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "update leads_cafeterias set ultimo_estado_notificado = '{{$('Leads con estado pendiente de notificar').item.json.estado}}' where id = '{{$('Leads con estado pendiente de notificar').item.json.id}}';",
-        "options": {}
+        "query": "UPDATE leads_cafeterias SET ultimo_estado_notificado = $1 WHERE id = $2",
+        "additionalFields": {
+          "queryParams": "={{ [$('Webhook: cambio de estado').item.json.body.estado, $('Webhook: cambio de estado').item.json.body.id] }}"
+        }
       },
+      "id": "marcar-notificado",
+      "name": "Marcar como notificado",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [
-        944,
-        224
-      ],
-      "id": "fcd43cda-ed1a-486d-8f0b-ae77a7edb376",
-      "name": "Marcar como notificado",
-      "credentials": {
-        "postgres": {
-          "id": "WTjLmMnAOzRBR8oC",
-          "name": "Postgres account"
-        }
-      }
+      "position": [1020, 480],
+      "credentials": { "postgres": { "id": "YOUR_POSTGRES_CREDENTIAL_ID", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      },
+      "id": "webhook-response",
+      "name": "Respuesta webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1020, 300]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Cada 15 minutos": {
-      "main": [
-        [
-          {
-            "node": "Leads con estado pendiente de notificar",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Leads con estado pendiente de notificar": {
-      "main": [
-        [
-          {
-            "node": "¿Estado = nuevo?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Webhook: cambio de estado": {
+      "main": [[{ "node": "¿Estado = nuevo?", "type": "main", "index": 0 }]]
     },
     "¿Estado = nuevo?": {
       "main": [
-        [
-          {
-            "node": "Email: bienvenida (nuevo)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "¿Estado = contactada?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Email: bienvenida (nuevo)", "type": "main", "index": 0 }],
+        [{ "node": "¿Estado = contactada?", "type": "main", "index": 0 }]
       ]
     },
     "¿Estado = contactada?": {
       "main": [
-        [
-          {
-            "node": "Email: seguimiento (contactada)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "¿Estado = verificada?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Email: seguimiento (contactada)", "type": "main", "index": 0 }],
+        [{ "node": "¿Estado = verificada?", "type": "main", "index": 0 }]
       ]
     },
     "¿Estado = verificada?": {
       "main": [
-        [
-          {
-            "node": "Email: verificada",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "¿Estado = activa?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Email: verificada", "type": "main", "index": 0 }],
+        [{ "node": "¿Estado = activa?", "type": "main", "index": 0 }]
       ]
     },
     "¿Estado = activa?": {
       "main": [
-        [
-          {
-            "node": "Email: bienvenida oficial (activa)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Email: bienvenida oficial (activa)", "type": "main", "index": 0 }],
+        []
       ]
     },
     "Email: bienvenida (nuevo)": {
       "main": [
-        [
-          {
-            "node": "Marcar como notificado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respuesta webhook", "type": "main", "index": 0 }, { "node": "Marcar como notificado", "type": "main", "index": 0 }]
       ]
     },
     "Email: seguimiento (contactada)": {
       "main": [
-        [
-          {
-            "node": "Marcar como notificado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respuesta webhook", "type": "main", "index": 0 }, { "node": "Marcar como notificado", "type": "main", "index": 0 }]
       ]
     },
     "Email: verificada": {
       "main": [
-        [
-          {
-            "node": "Marcar como notificado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respuesta webhook", "type": "main", "index": 0 }, { "node": "Marcar como notificado", "type": "main", "index": 0 }]
       ]
     },
     "Email: bienvenida oficial (activa)": {
       "main": [
-        [
-          {
-            "node": "Marcar como notificado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respuesta webhook", "type": "main", "index": 0 }, { "node": "Marcar como notificado", "type": "main", "index": 0 }]
       ]
     }
   },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  },
-  "versionId": "4feb627a-8dd4-4403-a5f2-5ea8bde7c9cc",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "304e0b08a6e0606ac38afe8f3498aaac202a9b54166f3663835d8ecdcddcae22"
-  },
-  "nodeGroups": [],
-  "id": "DJIhJBTOJ8rSUueT",
-  "tags": []
+  "settings": { "executionOrder": "v1" },
+  "meta": { "instanceId": "YOUR_INSTANCE_ID" }
 }
