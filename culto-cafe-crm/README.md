@@ -21,9 +21,9 @@ Webhook POST /culto-cafe-crm
   → Responde { "ok": true } al sistema llamante
 ```
 
-## Por qué webhook en lugar de polling
+## Por qué webhook
 
-La versión original consultaba PostgreSQL cada 15 minutos para detectar cambios. La versión actual usa un webhook: el sistema externo avisa a n8n en el momento exacto en que cambia el estado, sin esperas ni consultas innecesarias. El email llega en segundos, no en hasta 15 minutos.
+Utiliza un webhook: el sistema externo avisa a n8n en el momento exacto en que cambia el estado del lead, sin esperas ni consultas innecesarias. El email llega en segundos.
 
 ## Emails del pipeline
 
