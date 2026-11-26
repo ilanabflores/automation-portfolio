@@ -42,7 +42,7 @@ Aunque el webhook solo se dispara cuando hay un cambio, la columna actúa como g
 
 ## Stack
 - **Trigger:** Webhook (POST en tiempo real)
-- **Base de datos:** PostgreSQL (tabla `leads_cafeterias`)
-- **Emails:** SMTP
+- **Base de datos:** PostgreSQL/Supabase (tabla `leads_cafeterias`)
+- **Emails:** Brevo (SendInBlue)
 - **Lógica:** IF nodes en cadena por estado
 - **Nodos:** 11
