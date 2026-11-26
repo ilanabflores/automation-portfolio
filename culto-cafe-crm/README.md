@@ -1,6 +1,6 @@
 # CRM Automatizado — Culto Café
 
-Pipeline de onboarding de cafeterías: detecta cambios de estado en PostgreSQL cada 15 minutos y dispara el email correspondiente a cada etapa. Ningún email se envía manualmente ni se duplica.
+Pipeline de onboarding de cafeterías: cuando el estado de un lead cambia, un webhook dispara en tiempo real el email correspondiente a cada etapa. Ningún email se envía manualmente ni se duplica.
 
 ## El problema
 
@@ -9,16 +9,21 @@ Dar de alta una cafetería en Culto Café pasa por cuatro etapas: nuevo → cont
 ## Cómo funciona
 
 ```
-Trigger (cada 15 minutos)
-  → PostgreSQL: buscar leads donde estado ≠ ultimo_estado_notificado
-  → Por cada lead con cambio:
+Webhook POST /culto-cafe-crm
+  (se dispara cuando un sistema externo cambia el estado de un lead)
+  → Recibe: id, estado, email, contacto, nombre
+  → Evalúa el estado del lead:
       ├── nuevo      → Email de bienvenida + confirmación de recepción
       ├── contactada → Email de seguimiento, invita a resolver dudas
       ├── verificada → Email "ya está verificada, falta el pago"
       └── activa     → Email de bienvenida oficial, ya aparecen en la web
   → PostgreSQL: actualizar ultimo_estado_notificado
-     (garantiza que no se repite el mismo email si el workflow vuelve a correr)
+  → Responde { "ok": true } al sistema llamante
 ```
+
+## Por qué webhook en lugar de polling
+
+La versión original consultaba PostgreSQL cada 15 minutos para detectar cambios. La versión actual usa un webhook: el sistema externo avisa a n8n en el momento exacto en que cambia el estado, sin esperas ni consultas innecesarias. El email llega en segundos, no en hasta 15 minutos.
 
 ## Emails del pipeline
 
@@ -33,11 +38,11 @@ Todos los emails se personalizan con nombre del contacto y nombre del local.
 
 ## Por qué la lógica de `ultimo_estado_notificado` importa
 
-El workflow corre cada 15 minutos. Sin esta columna, enviaría el mismo email decenas de veces. La columna actúa como memoria: solo hay acción cuando hay un estado nuevo que aún no se notificó.
+Aunque el webhook solo se dispara cuando hay un cambio, la columna actúa como garantía: si el webhook se llama dos veces con el mismo estado, el email no se duplica.
 
 ## Stack
-- **Trigger:** Schedule (cada 15 minutos)
+- **Trigger:** Webhook (POST en tiempo real)
 - **Base de datos:** PostgreSQL (tabla `leads_cafeterias`)
 - **Emails:** SMTP
 - **Lógica:** IF nodes en cadena por estado
-- **Nodos:** 10
+- **Nodos:** 11
